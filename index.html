@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>deadbeef.io</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <style>
+      html {
+        height: 100%;
+      }
+
+      .header {
+        display: flex;
+        flex-direction: row;
+        padding-top: 10px;
+        font-family: 'Courier New', Courier, monospace;
+      }
+
+      .header nav {
+        flex-grow: 2;
+        text-align: center;
+        padding-top: 20px;
+      }
+
+      .header .socials img {
+        height: 30px;
+      }
+
+      button.link {
+        background: none !important;
+        border: none;
+        padding: 0 !important;
+        font-family: arial, sans-serif;
+        font-size: 1.3em;
+        color: #069;
+        text-decoration: none;
+        cursor: pointer;
+        -webkit-text-size-adjust: 100%;
+      }
+
+      button.link.inline {
+        font-size: 1.0em;
+      }
+
+      .header button.link {
+        color: black;
+      }
+
+      body {
+        min-height: 95%;
+        display: flex;
+        flex-direction: column;
+      }
+
+      body #page-content {
+        width: 90%;
+        max-width: 1000px;
+        margin: auto;
+        padding: 50px 0 40px 0;
+        flex-grow: 1;
+      }
+
+      footer {
+        width: 100%;
+        text-align: center;
+        padding: 20px 0 10px 0;
+      }
+    </style>
+  </head>
+  <body onload="onLoad()">
+    <div class="header">
+      <button class="link" onclick="navigateTo('/')">deadbeef.io</button>
+      <nav>
+        <button class="link" onclick="navigateTo('/')">blog</button>
+        <button class="link" onclick="navigateTo('/portfolio')">portfolio</button>
+        <button class="link" onclick="navigateTo('/about')">about</button>
+      </nav>
+      <div class="socials">
+        <a href="https://github.com/robjinman"><img class="local" data-src="github.svg" alt="github"></a>
+        <a href="https://www.instagram.com/leisurebeard"><img class="local" data-src="instagram.svg" alt="instagram"></a>
+      </div>
+    </div>
+    <div id="error" hidden>
+      <h1>Error</h1>
+      <p>An unknown error occurred.</p>
+    </div>
+    <div id="page-content"></div>
+    <footer>
+      Copyright © Rob Jinman 2019-<span class="date"></span>. All rights reserved.
+    </footer>
+    <script>
+      const devPort = 8000;
+      const hostName = window.location.host;
+      const production = hostName != `localhost:${devPort}`; 
+      const contentUrl = production ?
+        "https://content.deadbeef.io" :
+        `http://localhost:${devPort}/content`;
+
+      const eContent = document.getElementById("page-content");
+      const eError = document.getElementById("error");
+
+      function insertStyleSheet() {
+        const eHead = document.getElementsByTagName("head")[0];
+        const eLink = document.createElement('link');
+        eLink.rel = 'stylesheet';
+        eLink.type = 'text/css';
+        eLink.href = `${contentUrl}/styles.css`;
+        eHead.appendChild(eLink);
+      }
+
+      function fixImgUrls() {
+        const eImgs = document.querySelectorAll("img.local");
+        for (let eImg of eImgs) {
+          eImg.src = `${contentUrl}/images/${eImg.attributes["data-src"].value}`;
+        }
+      }
+
+      function loadPage(path) {
+        let pageName = path.substr(1);
+        if (pageName.length === 0) {
+          pageName = "home";
+        }
+
+        const xhttp = new XMLHttpRequest();
+        xhttp.onload = () => {
+          if (xhttp.status == 200) {
+            eError.hidden = true;
+
+            eContent.classList = [ pageName ];
+            eContent.innerHTML = xhttp.responseText;
+
+            fixImgUrls();
+            hljs.highlightAll();
+          }
+          else {
+            navigateTo("/error404");
+          }
+        };
+        xhttp.onerror = () => {
+          eError.hidden = false;
+          eContent.innerHTML = "";
+        };
+
+        xhttp.open("GET", `${contentUrl}/pages/${pageName}.html`);
+        xhttp.send();
+      }
+
+      function navigateTo(path) {
+        history.pushState({}, "", path);
+        loadPage(path);
+      }
+
+      function setDate() {
+        const eDates = document.getElementsByClassName("date");
+        for (let eDate of eDates) {
+          eDate.innerHTML = new Date().getFullYear();
+        }
+      }
+
+      function onLoad() {
+        const loadCurrentPage = () => { loadPage(window.location.pathname); };
+
+        loadCurrentPage();
+        insertStyleSheet();
+        setDate();
+
+        onpopstate = loadCurrentPage;
+      }
+    </script>
+  </body>
+</html>
+
