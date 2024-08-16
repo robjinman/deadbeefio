@@ -110,7 +110,7 @@
       }
 
       function fixImgUrls() {
-        const eImgs = document.querySelectorAll("img.local");
+        const eImgs = document.querySelectorAll('img[data-src]');
         for (let eImg of eImgs) {
           eImg.src = `${contentUrl}/images/${eImg.attributes["data-src"].value}`;
         }
