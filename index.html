@@ -96,9 +96,9 @@
       const contentUrl = production ?
         "https://content.deadbeef.io" :
         `http://localhost:${devPort}/content`;
-
       const eContent = document.getElementById("page-content");
       const eError = document.getElementById("error");
+      let lastLoaded = '';
 
       function insertStyleSheet() {
         const eHead = document.getElementsByTagName("head")[0];
@@ -116,39 +116,65 @@
         }
       }
 
-      function loadPage(path) {
-        let pageName = path.substr(1);
-        if (pageName.length === 0) {
-          pageName = "home";
-        }
-
-        const xhttp = new XMLHttpRequest();
-        xhttp.onload = () => {
-          if (xhttp.status == 200) {
-            eError.hidden = true;
-
-            eContent.classList = [ pageName ];
-            eContent.innerHTML = xhttp.responseText;
-
-            fixImgUrls();
-            hljs.highlightAll();
-          }
-          else {
-            navigateTo("/error404");
+      function runMathJax() {
+        window.MathJax = {
+          tex: {
+            tags: 'ams'
           }
         };
-        xhttp.onerror = () => {
-          eError.hidden = false;
-          eContent.innerHTML = "";
-        };
 
-        xhttp.open("GET", `${contentUrl}/pages/${pageName}.html`);
-        xhttp.send();
+        const eScript = document.createElement('script');
+        eScript.src = 'https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js';
+        eScript.async = true;
+        document.head.appendChild(eScript);
       }
 
-      function navigateTo(path) {
+      function jumpToAnchor() {
+        if (window.location.hash) {
+          window.location.replace(window.location);
+        }
+      }
+
+      async function loadPage(path) {
+        return new Promise((resolve) => {
+          let pageName = path.substr(1);
+          if (pageName.length === 0) {
+            pageName = "home";
+          }
+
+          const xhttp = new XMLHttpRequest();
+          xhttp.onload = async () => {
+            if (xhttp.status == 200) {
+              eError.hidden = true;
+
+              eContent.classList = [ pageName ];
+              eContent.innerHTML = xhttp.responseText;
+
+              fixImgUrls();
+              hljs.highlightAll();
+              runMathJax();
+            }
+            else {
+              await navigateTo("/error404");
+            }
+            lastLoaded = path;
+            jumpToAnchor();
+            resolve();
+          };
+          xhttp.onerror = () => {
+            eError.hidden = false;
+            eContent.innerHTML = "";
+            resolve();
+          };
+
+          xhttp.open("GET", `${contentUrl}/pages/${pageName}.html`);
+          xhttp.send();
+        });
+      }
+
+      async function navigateTo(path) {
         history.pushState({}, "", path);
-        loadPage(path);
+        await loadPage(path);
       }
 
       function setDate() {
@@ -158,14 +184,22 @@
         }
       }
 
-      function onLoad() {
-        const loadCurrentPage = () => { loadPage(window.location.pathname); };
-
-        loadCurrentPage();
+      async function onLoad() {
+        await loadPage(window.location.pathname);
         insertStyleSheet();
         setDate();
 
-        onpopstate = loadCurrentPage;
+        onpopstate = async (event) => {
+          const currentPath = window.location.pathname;
+          const hash = window.location.hash;
+          const currentPathWithoutHash = currentPath.replace(hash, "");
+          const lastLoadedWithoutHash = lastLoaded.replace(hash, "");
+          const onlyHashHasChanged = lastLoadedWithoutHash == currentPathWithoutHash;
+
+          if (!onlyHashHasChanged) {
+            await loadPage(window.location.pathname);
+          }
+        };
       }
     </script>
   </body>
