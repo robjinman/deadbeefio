@@ -116,10 +116,23 @@
         }
       }
 
+      function jumpToAnchor() {
+        if (window.location.hash) {
+          window.location.replace(window.location);
+        }
+      }
+
       function runMathJax() {
         window.MathJax = {
           tex: {
             tags: 'ams'
+          },
+          startup: {
+            pageReady: () => {
+              return MathJax.startup.defaultPageReady().then(() => {
+                jumpToAnchor();
+              });
+            }
           }
         };
 
@@ -127,12 +140,6 @@
         eScript.src = 'https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js';
         eScript.async = true;
         document.head.appendChild(eScript);
-      }
-
-      function jumpToAnchor() {
-        if (window.location.hash) {
-          window.location.replace(window.location);
-        }
       }
 
       async function loadPage(path) {
