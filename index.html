@@ -61,6 +61,14 @@
         flex-grow: 1;
       }
 
+      body #page-content .figure-wrap {
+        text-align: center;
+      }
+
+      body #page-content .figure-wrap .caption {
+        font-style: italic;
+      }
+
       footer {
         width: 100%;
         text-align: center;
@@ -90,124 +98,169 @@
       Copyright © Rob Jinman 2019-<span class="date"></span>. All rights reserved.
     </footer>
     <script>
-      const devPort = 8000;
-      const hostName = window.location.host;
-      const production = hostName != `localhost:${devPort}`; 
-      const contentUrl = production ?
-        "https://content.deadbeef.io" :
-        `http://localhost:${devPort}/content`;
-      const eContent = document.getElementById("page-content");
-      const eError = document.getElementById("error");
-      let lastLoaded = '';
 
-      function insertStyleSheet() {
-        const eHead = document.getElementsByTagName("head")[0];
-        const eLink = document.createElement('link');
-        eLink.rel = 'stylesheet';
-        eLink.type = 'text/css';
-        eLink.href = `${contentUrl}/styles.css`;
-        eHead.appendChild(eLink);
-      }
+class Spa {
+  _contentUrl = null;
+  _eContent = null;
+  _eError = null;
+  _lastLoaded = "";
+  _figures = new Map();
 
-      function fixImgUrls() {
-        const eImgs = document.querySelectorAll('img[data-src]');
-        for (let eImg of eImgs) {
-          eImg.src = `${contentUrl}/images/${eImg.attributes["data-src"].value}`;
+  constructor() {
+    const devPort = 8000;
+    const hostName = window.location.host;
+    const production = hostName != `localhost:${devPort}`; 
+    this._contentUrl = production ?
+      "https://content.deadbeef.io" :
+      `http://localhost:${devPort}/content`;
+
+    this._eContent = document.getElementById("page-content");
+    this._eError = document.getElementById("error");
+  }
+
+  _insertStyleSheet() {
+    const eHead = document.getElementsByTagName("head")[0];
+    const eLink = document.createElement('link');
+    eLink.rel = 'stylesheet';
+    eLink.type = 'text/css';
+    eLink.href = `${this._contentUrl}/styles.css`;
+    eHead.appendChild(eLink);
+  }
+
+  _fixImgUrls() {
+    const eImgs = document.querySelectorAll('img[data-src]');
+    for (let eImg of eImgs) {
+      eImg.src = `${this._contentUrl}/images/${eImg.attributes["data-src"].value}`;
+    }
+  }
+
+  _jumpToAnchor() {
+    if (window.location.hash) {
+      window.location.replace(window.location);
+    }
+  }
+
+  _runMathJax() {
+    window.MathJax = {
+      tex: {
+        tags: 'ams'
+      },
+      startup: {
+        pageReady: () => {
+          return MathJax.startup.defaultPageReady().then(() => {
+            this._jumpToAnchor();
+          });
         }
       }
+    };
 
-      function jumpToAnchor() {
-        if (window.location.hash) {
-          window.location.replace(window.location);
+    const eScript = document.createElement('script');
+    eScript.src = 'https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js';
+    eScript.async = true;
+    document.head.appendChild(eScript);
+  }
+
+  _renderFigures() {
+    const eFigures = document.getElementsByClassName("figure");
+    for (const eFigure of eFigures) {
+      const eWrapper = document.createElement("div");
+      const eCaption = document.createElement("div");
+      const id = this._figures.size + 1;
+
+      eWrapper.num = id;
+      eWrapper.classList = ["figure-wrap"];
+      eCaption.classList = ["caption"]
+      eFigure.parentNode.insertBefore(eWrapper, eFigure);
+      eFigure.parentNode.removeChild(eFigure);
+      eWrapper.appendChild(eFigure);
+      eWrapper.appendChild(eCaption);
+      eWrapper.id = eFigure.id;
+      delete eFigure.id;
+      eCaption.innerHTML = `Figure ${id}: ${eFigure.attributes["alt"].value}`;
+
+      this._figures.set(eWrapper.id, eWrapper);
+    }
+
+    const eRefs = document.getElementsByClassName("figure-ref");
+    for (const eRef of eRefs) {
+      const eFigure = this._figures.get(eRef.innerHTML);
+      eRef.innerHTML = `<a href="#${eFigure.id}">(${eFigure.num})</a>`;
+    }
+  }
+
+  async _loadPage(path) {
+    return new Promise((resolve) => {
+      let pageName = path.substr(1);
+      if (pageName.length === 0) {
+        pageName = "home";
+      }
+
+      const xhttp = new XMLHttpRequest();
+      xhttp.onload = async () => {
+        if (xhttp.status == 200) {
+          this._eError.hidden = true;
+
+          this._eContent.classList = [ pageName ];
+          this._eContent.innerHTML = xhttp.responseText;
+
+          this._fixImgUrls();
+          hljs.highlightAll();
+          this._runMathJax();
+          this._renderFigures();
         }
-      }
-
-      function runMathJax() {
-        window.MathJax = {
-          tex: {
-            tags: 'ams'
-          },
-          startup: {
-            pageReady: () => {
-              return MathJax.startup.defaultPageReady().then(() => {
-                jumpToAnchor();
-              });
-            }
-          }
-        };
-
-        const eScript = document.createElement('script');
-        eScript.src = 'https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js';
-        eScript.async = true;
-        document.head.appendChild(eScript);
-      }
-
-      async function loadPage(path) {
-        return new Promise((resolve) => {
-          let pageName = path.substr(1);
-          if (pageName.length === 0) {
-            pageName = "home";
-          }
-
-          const xhttp = new XMLHttpRequest();
-          xhttp.onload = async () => {
-            if (xhttp.status == 200) {
-              eError.hidden = true;
-
-              eContent.classList = [ pageName ];
-              eContent.innerHTML = xhttp.responseText;
-
-              fixImgUrls();
-              hljs.highlightAll();
-              runMathJax();
-            }
-            else {
-              await navigateTo("/error404");
-            }
-            lastLoaded = path;
-            jumpToAnchor();
-            resolve();
-          };
-          xhttp.onerror = () => {
-            eError.hidden = false;
-            eContent.innerHTML = "";
-            resolve();
-          };
-
-          xhttp.open("GET", `${contentUrl}/pages/${pageName}.html`);
-          xhttp.send();
-        });
-      }
-
-      async function navigateTo(path) {
-        history.pushState({}, "", path);
-        await loadPage(path);
-      }
-
-      function setDate() {
-        const eDates = document.getElementsByClassName("date");
-        for (let eDate of eDates) {
-          eDate.innerHTML = new Date().getFullYear();
+        else {
+          await this.navigateTo("/error404");
         }
+        this._lastLoaded = path;
+        this._jumpToAnchor();
+        resolve();
+      };
+      xhttp.onerror = () => {
+        eError.hidden = false;
+        eContent.innerHTML = "";
+        resolve();
+      };
+
+      xhttp.open("GET", `${this._contentUrl}/pages/${pageName}.html`);
+      xhttp.send();
+    });
+  }
+
+  async navigateTo(path) {
+    window.history.pushState({}, "", path);
+    await this._loadPage(path);
+  }
+
+  _setDate() {
+    const eDates = document.getElementsByClassName("date");
+    for (const eDate of eDates) {
+      eDate.innerHTML = new Date().getFullYear();
+    }
+  }
+
+  async onLoad() {
+    await this._loadPage(window.location.pathname);
+    this._insertStyleSheet();
+    this._setDate();
+
+    onpopstate = async (event) => {
+      const currentPath = window.location.pathname;
+      const hash = window.location.hash;
+      const currentPathWithoutHash = currentPath.replace(hash, "");
+      const lastLoadedWithoutHash = this._lastLoaded.replace(hash, "");
+      const onlyHashHasChanged = lastLoadedWithoutHash == currentPathWithoutHash;
+
+      if (!onlyHashHasChanged) {
+        await this._loadPage(window.location.pathname);
       }
+    };
+  }
 
-      async function onLoad() {
-        await loadPage(window.location.pathname);
-        insertStyleSheet();
-        setDate();
+}
 
-        onpopstate = async (event) => {
-          const currentPath = window.location.pathname;
-          const hash = window.location.hash;
-          const currentPathWithoutHash = currentPath.replace(hash, "");
-          const lastLoadedWithoutHash = lastLoaded.replace(hash, "");
-          const onlyHashHasChanged = lastLoadedWithoutHash == currentPathWithoutHash;
-
-          if (!onlyHashHasChanged) {
-            await loadPage(window.location.pathname);
-          }
-        };
-      }
+const spa = new Spa();
+const navigateTo = spa.navigateTo.bind(spa);
+const onLoad = spa.onLoad.bind(spa);
     </script>
   </body>
 </html>
