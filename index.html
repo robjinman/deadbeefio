@@ -188,6 +188,38 @@ class Spa {
     }
   }
 
+  _renderLineNumbers() {
+    const eCodes = document.getElementsByTagName("code");
+    for (const eCode of eCodes) {
+      if (!eCode.firstElementChild) {
+        continue;
+      }
+      const numLines = Math.floor(eCode.scrollHeight / eCode.firstElementChild.offsetHeight - 1);
+      if (numLines < 2) {
+        continue;
+      }
+      const eWrapper = document.createElement("div");
+      eCode.parentNode.insertBefore(eWrapper, eCode);
+      eCode.parentNode.removeChild(eCode);
+      const eLines = document.createElement("div");
+      eLines.style.display = "table-cell";
+      eWrapper.style.display = "table";
+      eWrapper.style.padding = "10px";
+      eWrapper.appendChild(eLines);
+      eWrapper.appendChild(eCode);
+      eCode.style.display = "table-cell";
+      eCode.style.width = "100%";
+      eCode.style.padding = "0px";
+      eLines.style.paddingRight = "10px";
+      eWrapper.style.background = window.getComputedStyle(eCode)["background"];
+      for (let i = 0; i < numLines; ++i) {
+        const eNum = document.createElement("div");
+        eNum.innerHTML = `${i + 1}.`;
+        eLines.appendChild(eNum);
+      }
+    }
+  }
+
   async _loadPage(path) {
     return new Promise((resolve) => {
       let pageName = path.substr(1);
@@ -205,6 +237,7 @@ class Spa {
 
           this._fixImgUrls();
           hljs.highlightAll();
+          this._renderLineNumbers();
           this._runMathJax();
           this._renderFigures();
         }
