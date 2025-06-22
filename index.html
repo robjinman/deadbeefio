@@ -2,12 +2,44 @@
 <html lang="en">
   <head>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>deadbeef.io</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <style>
       html {
         height: 100%;
+        font-size: 1em;
+      }
+
+      @media screen and (max-width: 480px) {
+        html {
+          font-size: 0.6em;
+        }
+      }
+
+      @media screen and (min-width: 480px) {
+        html {
+          font-size: 0.7em;
+        }
+      }
+
+      @media screen and (min-width: 600px) {
+        html {
+          font-size: 0.8em;
+        }
+      }
+
+      @media screen and (min-width: 768px) {
+        html {
+          font-size: 0.9em;
+        }
+      }
+
+      @media screen and (min-width: 992px) {
+        html {
+          font-size: 1.0em;
+        }
       }
 
       .header {
@@ -16,6 +48,12 @@
         padding-top: 10px;
         font-family: 'Courier New', Courier, monospace;
         font-size: 1.5em;
+      }
+
+      @media screen and (max-width: 480px) {
+        .header {
+          font-size: 1.3em;
+        }
       }
 
       .header nav {
