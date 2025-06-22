@@ -15,12 +15,17 @@
         flex-direction: row;
         padding-top: 10px;
         font-family: 'Courier New', Courier, monospace;
+        font-size: 1.5em;
       }
 
       .header nav {
         flex-grow: 2;
         text-align: center;
         padding-top: 20px;
+      }
+
+      .header nav button {
+        margin-left: 10px;
       }
 
       .header .socials img {
@@ -59,6 +64,7 @@
         margin: auto;
         padding: 50px 0 40px 0;
         flex-grow: 1;
+        font-size: 1.2em;
       }
 
       body #page-content .figure-wrap {
@@ -140,7 +146,6 @@ class Spa {
     const eHead = document.getElementsByTagName("head")[0];
     const eLink = document.createElement('link');
     eLink.rel = 'stylesheet';
-    eLink.type = 'text/css';
     eLink.href = `${this._contentUrl}/styles.css`;
     eHead.appendChild(eLink);
   }
@@ -193,7 +198,7 @@ class Spa {
       eWrapper.appendChild(eFigure);
       eWrapper.appendChild(eCaption);
       eWrapper.id = eFigure.id;
-      delete eFigure.id;
+      eFigure.removeAttribute("id");
       eCaption.innerHTML = `Figure ${id}: ${eFigure.attributes["alt"].value}`;
 
       this._figures.set(eWrapper.id, eWrapper);
@@ -221,12 +226,14 @@ class Spa {
 
       if (newDepth == depth + 1) {
         const newParent = document.createElement("ul");
-        parent.appendChild(newParent);
+        const li = document.createElement("li");
+        li.appendChild(newParent);
+        parent.appendChild(li);
         parent = newParent;
       }
       else if (newDepth < depth) {
         for (let i = 0; i < depth - newDepth; ++i) {
-          parent = parent.parentElement;
+          parent = parent.parentElement.parentElement;
         }
       }
       else if (newDepth > depth + 1) {
